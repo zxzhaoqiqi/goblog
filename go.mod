@@ -1,4 +1,4 @@
-module goblog
+module github.com/zxzhaoqiqi/goblog
 
 go 1.18
 
