@@ -8,14 +8,10 @@ import (
 )
 
 func homeHandler(w http.ResponseWriter, r *http.Request) {
-	w.Header().Set("Content-type", "text/html; charset=utf8")
-
 	fmt.Fprint(w, "<h1>HOME</h1>")
 }
 
 func aboutHandler(w http.ResponseWriter, r *http.Request) {
-	w.Header().Set("Content-type", "text/html; charset=utf8")
-
 	fmt.Fprint(w, "about 页面")
 }
 
@@ -34,9 +30,18 @@ func articlesStoreHandler(w http.ResponseWriter, r *http.Request) {
 }
 
 func notFoundHandler(w http.ResponseWriter, r *http.Request) {
-	w.Header().Set("Content-Type", "text/html; charset=utf-8")
 	w.WriteHeader(http.StatusNotFound)
 	fmt.Fprint(w, "<h1>请求页面未找到 :(</h1><p>如有疑惑，请联系我们。</p>")
+}
+
+func forceHTMLMiddle(next http.Handler) http.Handler {
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		// 1. 设置头部信息
+		w.Header().Set("Content-type", "text/html; charset=utf8")
+
+		// 2. 继续处理
+		next.ServeHTTP(w, r)
+	})
 }
 
 func main() {
@@ -53,6 +58,9 @@ func main() {
 
 	// 设置 404 页面
 	router.NotFoundHandler = http.HandlerFunc(notFoundHandler)
+
+	// 中间件： 强制内容类型为 HTML
+	router.Use(forceHTMLMiddle)
 
 	// 通过命名路由获取 URL 示例
 	homeURL, _ := router.Get("home").URL()
