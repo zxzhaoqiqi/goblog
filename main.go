@@ -8,6 +8,8 @@ import (
 	"github.com/gorilla/mux"
 )
 
+var router = mux.NewRouter().StrictSlash(true)
+
 func homeHandler(w http.ResponseWriter, r *http.Request) {
 	fmt.Fprint(w, "<h1>HOME</h1>")
 }
@@ -27,7 +29,41 @@ func articlesShowHandler(w http.ResponseWriter, r *http.Request) {
 }
 
 func articlesStoreHandler(w http.ResponseWriter, r *http.Request) {
-	fmt.Fprint(w, "创建文章")
+	err := r.ParseForm()
+	if err != nil {
+		fmt.Fprintf(w, "请提供正确的数据")
+		return
+	}
+
+	title := r.PostForm.Get("title")
+	fmt.Fprintf(w, "POST PostForm: %v <br>", r.PostForm)
+	fmt.Fprintf(w, "POST Form: %v <br>", r.Form)
+	fmt.Fprintf(w, "title 的值为: %v", title)
+
+	fmt.Fprintf(w, "r.Form 中 title 的值为: %v <br>", r.FormValue("title"))
+	fmt.Fprintf(w, "r.PostForm 中 title 的值为: %v <br>", r.PostFormValue("title"))
+	fmt.Fprintf(w, "r.Form 中 test 的值为: %v <br>", r.FormValue("test"))
+	fmt.Fprintf(w, "r.PostForm 中 test 的值为: %v <br>", r.PostFormValue("test"))
+}
+
+func articlesCreateHandler(w http.ResponseWriter, r *http.Request) {
+	html := `
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <title>创建文章 —— 我的技术博客</title>
+</head>
+<body>
+    <form action="%s?test=data" method="post">
+        <p><input type="text" name="title"></p>
+        <p><textarea name="body" cols="30" rows="10"></textarea></p>
+        <p><button type="submit">提交</button></p>
+    </form>
+</body>
+</html>
+`
+	storeURL, _ := router.Get("articles.store").URL()
+	fmt.Fprintf(w, html, storeURL)
 }
 
 func notFoundHandler(w http.ResponseWriter, r *http.Request) {
@@ -58,8 +94,6 @@ func removeTrailingSlash(next http.Handler) http.Handler {
 }
 
 func main() {
-	router := mux.NewRouter().StrictSlash(true)
-
 	router.HandleFunc("/", homeHandler).Methods("GET").Name("home")
 	router.HandleFunc("/about", aboutHandler).Methods("GET").Name("about")
 
@@ -69,18 +103,14 @@ func main() {
 
 	router.HandleFunc("/articles", articlesStoreHandler).Methods("POST").Name("articles.store")
 
+	router.HandleFunc("/articles/create", articlesCreateHandler).Methods("GET").Name("articles.create")
+
 	// 设置 404 页面
 	router.NotFoundHandler = http.HandlerFunc(notFoundHandler)
 
 	// 中间件： 强制内容类型为 HTML
 	router.Use(forceHTMLMiddle)
 
-	// 通过命名路由获取 URL 示例
-	homeURL, _ := router.Get("home").URL()
-	fmt.Println("homeUrl:", homeURL)
-
-	articleURL, _ := router.Get("articles.show").URL("id", "77")
-	fmt.Println("aritcleURL:", articleURL)
-
 	http.ListenAndServe(":3000", removeTrailingSlash(router))
+
 }
