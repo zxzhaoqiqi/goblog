@@ -122,12 +122,51 @@ func aboutHandler(w http.ResponseWriter, r *http.Request) {
 }
 
 func articlesIndexHandler(w http.ResponseWriter, r *http.Request) {
-	fmt.Fprint(w, "文章列表")
+	// 1. 查询数据
+	rows, err := db.Query("SELECT id,title,body FROM articles")
+	checkError(err)
+
+	defer rows.Close()
+
+	var articles []Article
+
+	// 2. 循环读结果
+	for rows.Next() {
+		var article Article
+		// 2.1 扫描每一行的结果并赋值到一个 article 对象中
+		err := rows.Scan(&article.ID, &article.Title, &article.Body)
+		checkError(err)
+
+		// 2.2 将 article 追加到 articles 数组中
+		articles = append(articles, article)
+	}
+
+	// 2.3 检测遍历是否发生错误
+	err = rows.Err()
+	checkError(err)
+
+	// 3. 加载模板
+	tmpl, err := template.ParseFiles("resources/views/articles/index.gohtml")
+	checkError(err)
+
+	err = tmpl.Execute(w, articles)
+	checkError(err)
 }
 
 type Article struct {
 	Title, Body string
 	ID          int64
+}
+
+func (a Article) Link() string {
+	showUrl, err := router.Get("articles.show").URL("id", strconv.FormatInt(a.ID, 10))
+
+	if err != nil {
+		checkError(err)
+		return ""
+	}
+
+	return showUrl.String()
 }
 
 func articlesShowHandler(w http.ResponseWriter, r *http.Request) {
