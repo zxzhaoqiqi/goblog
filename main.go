@@ -3,12 +3,21 @@ package main
 import (
 	"fmt"
 	"net/http"
+	"net/url"
 	"strings"
+	"text/template"
+	"unicode/utf8"
 
 	"github.com/gorilla/mux"
 )
 
 var router = mux.NewRouter().StrictSlash(true)
+
+type ArticlesFormData struct {
+	Title, Body string
+	URL         *url.URL
+	Errors      map[string]string
+}
 
 func homeHandler(w http.ResponseWriter, r *http.Request) {
 	fmt.Fprint(w, "<h1>HOME</h1>")
@@ -35,15 +44,75 @@ func articlesStoreHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	title := r.PostForm.Get("title")
-	fmt.Fprintf(w, "POST PostForm: %v <br>", r.PostForm)
-	fmt.Fprintf(w, "POST Form: %v <br>", r.Form)
-	fmt.Fprintf(w, "title 的值为: %v", title)
+	title := r.PostFormValue("title")
+	body := r.PostFormValue("body")
 
-	fmt.Fprintf(w, "r.Form 中 title 的值为: %v <br>", r.FormValue("title"))
-	fmt.Fprintf(w, "r.PostForm 中 title 的值为: %v <br>", r.PostFormValue("title"))
-	fmt.Fprintf(w, "r.Form 中 test 的值为: %v <br>", r.FormValue("test"))
-	fmt.Fprintf(w, "r.PostForm 中 test 的值为: %v <br>", r.PostFormValue("test"))
+	errors := make(map[string]string)
+
+	// 验证标题
+	if title == "" {
+		errors["title"] = "标题不能为空"
+	} else if utf8.RuneCountInString(title) < 3 || utf8.RuneCountInString(title) > 40 {
+		errors["title"] = "标题长度需介于 3-40"
+	}
+
+	// 验证内容
+	if body == "" {
+		errors["body"] = "内容不能为空"
+	} else if len(body) < 10 {
+		errors["body"] = "内容长度需大于等于 10 个字节"
+	}
+
+	// 检查是否有错误
+	if len(errors) == 0 {
+		fmt.Fprint(w, "验证通过！<br>")
+
+		fmt.Fprintf(w, "title : %v (%v) <br>", title, utf8.RuneCountInString(title))
+		fmt.Fprintf(w, "body : %v (%v) <br>", body, utf8.RuneCountInString(body))
+	} else {
+		html := `
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <title>创建文章 —— 我的技术博客</title>
+    <style type="text/css">.error {color: red;}</style>
+</head>
+<body>
+    <form action="{{ .URL }}" method="post">
+        <p><input type="text" name="title" value="{{ .Title }}"></p>
+        {{ with .Errors.title }}
+        <p class="error">{{ . }}</p>
+        {{ end }}
+        <p><textarea name="body" cols="30" rows="10">{{ .Body }}</textarea></p>
+        {{ with .Errors.body }}
+        <p class="error">{{ . }}</p>
+        {{ end }}
+        <p><button type="submit">提交</button></p>
+    </form>
+</body>
+</html>
+`
+		storeURL, _ := router.Get("articles.store").URL()
+
+		data := ArticlesFormData{
+			Title:  title,
+			Body:   body,
+			URL:    storeURL,
+			Errors: errors,
+		}
+
+		tmpl, err := template.New("create-form").Parse(html)
+
+		if err != nil {
+			panic(err)
+		}
+
+		err = tmpl.Execute(w, data)
+
+		if err != nil {
+			panic(err)
+		}
+	}
 }
 
 func articlesCreateHandler(w http.ResponseWriter, r *http.Request) {
