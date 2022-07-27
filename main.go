@@ -6,6 +6,7 @@ import (
 	"log"
 	"net/http"
 	"net/url"
+	"strconv"
 	"strings"
 	"text/template"
 	"time"
@@ -70,6 +71,42 @@ func createTables() {
 	checkError(err)
 }
 
+func saveArticleToDB(title string, body string) (int64, error) {
+
+	// 变量初始化
+	var (
+		id   int64
+		err  error
+		rs   sql.Result
+		stmt *sql.Stmt
+	)
+
+	// 1. 获取一个 prepare 声明语句
+	// *sql.Stmt 指针对象，占用一个连接
+	stmt, err = db.Prepare("INSERT INTO articles (title, body) VALUES(?,?)")
+	// 错误检测
+	if err != nil {
+		return 0, err
+	}
+
+	// 2. 在此函数运行结束后关闭此语句，防止占用 SQL 链接
+	// defer 延迟执行，在此函数即将返回时执行
+	defer stmt.Close()
+
+	// 3. 执行请求，传参进入绑定的内容
+	rs, err = stmt.Exec(title, body)
+	if err != nil {
+		return 0, err
+	}
+
+	// 4. 插入成功的话，返回自增 ID
+	if id, err = rs.LastInsertId(); id > 0 {
+		return id, nil
+	}
+
+	return 0, err
+}
+
 func checkError(err error) {
 	if err != nil {
 		log.Fatal(err)
@@ -122,10 +159,17 @@ func articlesStoreHandler(w http.ResponseWriter, r *http.Request) {
 
 	// 检查是否有错误
 	if len(errors) == 0 {
-		fmt.Fprint(w, "验证通过！<br>")
+		lastInsertID, err := saveArticleToDB(title, body)
 
-		fmt.Fprintf(w, "title : %v (%v) <br>", title, utf8.RuneCountInString(title))
-		fmt.Fprintf(w, "body : %v (%v) <br>", body, utf8.RuneCountInString(body))
+		if lastInsertID > 0 {
+			// 将 lastInsertID 转为 10 进制的字符串
+			fmt.Fprintf(w, "插入成功，ID 为 %s", strconv.FormatInt(lastInsertID, 10))
+		} else {
+			checkError(err)
+			w.WriteHeader(http.StatusInternalServerError)
+			fmt.Fprint(w, "500 服务器内部错误")
+		}
+
 	} else {
 
 		storeURL, _ := router.Get("articles.store").URL()
