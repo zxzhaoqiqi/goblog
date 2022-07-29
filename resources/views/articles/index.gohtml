@@ -7,13 +7,13 @@
 <body>
     <h1>所有文章</h1>
     <ul>
-        <li>
-            {{ range $key, $article := . }}
+        {{ range $key, $article := . }}
+            <li>
                 <a href="{{ $article.Link }}">
-                    <strong>{{ $article.ID }}</strong> : {{ $article.Title }}
+                    <strong>{{ $article.ID }}</strong> : {{ $article.Title }} 
                 </a>
-            {{ end }}
-        </li>
+            </li>
+        {{ end }}
     </ul>
 </body>
 </html>
