@@ -4,17 +4,15 @@ import (
 	"fmt"
 	"html/template"
 	"net/http"
+	"path/filepath"
 	"unicode/utf8"
 
-	"github.com/gorilla/mux"
 	"github.com/zxzhaoqiqi/goblog/model/article"
 	"github.com/zxzhaoqiqi/goblog/pkg/logger"
 	"github.com/zxzhaoqiqi/goblog/pkg/route"
 	"github.com/zxzhaoqiqi/goblog/pkg/types"
 	"gorm.io/gorm"
 )
-
-var router *mux.Router
 
 type ArticlesController struct {
 }
@@ -40,17 +38,28 @@ func (*ArticlesController) Show(w http.ResponseWriter, r *http.Request) {
 		}
 	} else {
 		// 4. 读取成功
-		tmpl, err := template.
-			New("show.gohtml").
-			Funcs(template.FuncMap{
-				"RouteName2URL":  route.Name2URL,
-				"Uint64ToString": types.Uint64ToString,
-			}).
-			ParseFiles("resources/views/articles/show.gohtml")
+
+		// 4.0 设置模板相对路径
+		viewDir := "resources/views"
+
+		// 4.1 所有布局模板文件 Slice
+		files, err := filepath.Glob(viewDir + "/layouts/*.gohtml")
 		logger.Error(err)
 
-		err = tmpl.Execute(w, article)
+		// 4.2 在 Slice 中新增我们的目标文件
+		newFiles := append(files, viewDir+"/articles/show.gohtml")
 
+		// 4.3 解析模板文件
+
+		tmpl, err := template.New("show.gohtml").
+			Funcs(template.FuncMap{
+				"RouteName2Url":  route.Name2URL,
+				"Uint64ToString": types.Uint64ToString,
+			}).ParseFiles(newFiles...)
+		logger.Error(err)
+
+		// 4.4 渲染模板，将文章数据传输进去
+		err = tmpl.ExecuteTemplate(w, "app", article)
 		logger.Error(err)
 	}
 }
@@ -66,11 +75,23 @@ func (*ArticlesController) Index(w http.ResponseWriter, r *http.Request) {
 		fmt.Fprint(w, "500 服务器内部错误")
 	} else {
 		// 2. 加载模板
-		tmpl, err := template.ParseFiles("resources/views/articles/index.gohtml")
+
+		// 2.0 设置模板相对路径
+		viewDir := "resources/views"
+
+		// 2.1 所有布局模板文件 Slice
+		files, err := filepath.Glob(viewDir + "/layouts/*.gohtml")
 		logger.Error(err)
 
-		// 3. 渲染模板，将所有文章的数据传输进去
-		err = tmpl.Execute(w, articles)
+		// 2.2 在 Slice 里新增我们的目标文件
+		newFiles := append(files, viewDir+"/articles/index.gohtml")
+
+		// 2.3 解析模板文件
+		tmpl, err := template.ParseFiles(newFiles...)
+		logger.Error(err)
+
+		// 2.4 渲染模板，将所有文章的数据传输进去
+		err = tmpl.ExecuteTemplate(w, "app", articles)
 		logger.Error(err)
 	}
 

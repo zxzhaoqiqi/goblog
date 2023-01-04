@@ -5,7 +5,6 @@ import (
 
 	"github.com/gorilla/mux"
 	"github.com/zxzhaoqiqi/goblog/app/http/controllers"
-	"github.com/zxzhaoqiqi/goblog/app/http/middlewares"
 )
 
 func RegisterWebRoutes(r *mux.Router) {
@@ -32,7 +31,11 @@ func RegisterWebRoutes(r *mux.Router) {
 
 	r.HandleFunc("/articles/{id:[0-9]+}/delete", ac.Delete).Methods("POST").Name("articles.delete")
 
+	// 静态资源
+	r.PathPrefix("/css/").Handler(http.FileServer(http.Dir("./public")))
+	r.PathPrefix("/js/").Handler(http.FileServer(http.Dir("./public")))
+
 	// 中间件: 强制内容类型为 HTML
-	r.Use(middlewares.ForceHTMLMiddle)
+	// r.Use(middlewares.ForceHTMLMiddle)
 
 }

@@ -1,18 +1,28 @@
-<!DOCTYPE html>
-<html lang="en">
-<head>
-    <title>{{ .Title }} —— 我的技术博客</title>
-    <style type="text/css">.error {color: red;}</style>
-</head>
-<body>
-    <p>ID: {{ .ID }}</p>
-    <p>标题： {{ .Title }}</p>
-    <p>内容：{{ .Body }}</p>
+{{ define "title" }}
+{{ .Title }}
+{{ end }}
 
-    {{/* 构建删除 */}}
-    {{ $idString := Uint64ToString .ID }}
-    <form action="{{ RouteName2URL "articles.delete" "id" $idString }}" method="post">
-        <button type="submit" onclick="return confirm('确认删除吗？')">删除</button>
-    </form>
-</body>
-</html>
+{{ define "main" }}
+<div class="col-md-9 bolg-main">
+    <div class="blog-post bg-white p-5 rounded shadow mb-4">
+        <h3 class="blog-post-title">{{ .Title }}</h3>
+        <p class="blog-post-meta text-secondary">
+            发布于 
+            <a href="" class="font-weight-bold">2020-09-05</a>
+            by
+            <a href="#" class="font-weight-bold">Summer</a>
+        </p>
+
+        <hr>
+        {{ .Body }}
+
+        {{/* 删除按钮 */}}
+        {{ $id_string := Uint64ToString .ID }}
+        <form class="mt-4" action="{{ RouteName2Url "articles.delete" "id" $id_string }}" method="post">
+            <button type="submit" onclick="return confirm('删除动作不可逆，请确认是否删除')">
+                删除
+            </button>
+        </form><!-- /.blog-post -->
+    </div>
+</div> 
+{{ end }}
