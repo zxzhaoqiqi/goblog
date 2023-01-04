@@ -5,12 +5,12 @@
     <style type="text/css">.error {color: red;}</style>
 </head>
 <body>
-    <p>ID： {{ .ID }}</p>
+    <p>ID: {{ .ID }}</p>
     <p>标题： {{ .Title }}</p>
     <p>内容：{{ .Body }}</p>
 
     {{/* 构建删除 */}}
-    {{ $idString := Int64ToString .ID }}
+    {{ $idString := Uint64ToString .ID }}
     <form action="{{ RouteName2URL "articles.delete" "id" $idString }}" method="post">
         <button type="submit" onclick="return confirm('确认删除吗？')">删除</button>
     </form>
