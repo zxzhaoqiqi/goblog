@@ -7,7 +7,7 @@
     <div class="blog-post bg-white p-5 rounded shadow mb-4">
         <h3 class="blog-post-title">{{ .Title }}</h3>
         <p class="blog-post-meta text-secondary">
-            发布于 
+            发布于
             <a href="" class="font-weight-bold">2020-09-05</a>
             by
             <a href="#" class="font-weight-bold">Summer</a>
@@ -17,12 +17,13 @@
         {{ .Body }}
 
         {{/* 删除按钮 */}}
-        {{ $id_string := Uint64ToString .ID }}
-        <form class="mt-4" action="{{ RouteName2Url "articles.delete" "id" $id_string }}" method="post">
-            <button type="submit" onclick="return confirm('删除动作不可逆，请确认是否删除')">
+        <form class="mt-4" action="{{ RouteName2Url "articles.delete" "id" .GetStringID }}" method="post">
+            <button type="submit" onclick="return confirm('删除动作不可逆，请确认是否删除')" class="btn btn-outline-danger btn-sm">
                 删除
             </button>
+
+            <a href="{{ RouteName2Url "articles.edit" "id" .GetStringID }}" class="btn btn-outline-secondary btn-sm">编辑</a>
         </form><!-- /.blog-post -->
     </div>
-</div> 
+</div>
 {{ end }}

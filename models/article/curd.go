@@ -1,7 +1,7 @@
 package article
 
 import (
-	"github.com/zxzhaoqiqi/goblog/model"
+	"github.com/zxzhaoqiqi/goblog/models"
 	"github.com/zxzhaoqiqi/goblog/pkg/logger"
 	"github.com/zxzhaoqiqi/goblog/pkg/types"
 )
@@ -11,7 +11,7 @@ func Get(idstr string) (Article, error) {
 
 	id := types.StringToUint64(idstr)
 
-	if err := model.DB.First(&article, id).Error; err != nil {
+	if err := models.DB.First(&article, id).Error; err != nil {
 		return article, err
 	}
 
@@ -21,7 +21,7 @@ func Get(idstr string) (Article, error) {
 
 func GetAll() ([]Article, error) {
 	var articles []Article
-	if err := model.DB.Find(&articles).Error; err != nil {
+	if err := models.DB.Find(&articles).Error; err != nil {
 		return articles, err
 	}
 
@@ -29,7 +29,7 @@ func GetAll() ([]Article, error) {
 }
 
 func (article *Article) Create() (err error) {
-	result := model.DB.Create(&article)
+	result := models.DB.Create(&article)
 
 	if err = result.Error; err != nil {
 		logger.Error(err)
@@ -40,7 +40,7 @@ func (article *Article) Create() (err error) {
 }
 
 func (article *Article) Update() (rowsAffected int64, err error) {
-	result := model.DB.Save(&article)
+	result := models.DB.Save(&article)
 
 	if err = result.Error; err != nil {
 		logger.Error(err)
@@ -51,7 +51,7 @@ func (article *Article) Update() (rowsAffected int64, err error) {
 }
 
 func (article *Article) Delete() (rowsAffected int64, err error) {
-	result := model.DB.Delete(&article)
+	result := models.DB.Delete(&article)
 	if err = result.Error; err != nil {
 		return 0, err
 	}

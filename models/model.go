@@ -1,7 +1,8 @@
-package model
+package models
 
 import (
 	"github.com/zxzhaoqiqi/goblog/pkg/logger"
+	"github.com/zxzhaoqiqi/goblog/pkg/types"
 	"gorm.io/driver/mysql"
 	"gorm.io/gorm"
 	gormlogger "gorm.io/gorm/logger"
@@ -25,4 +26,12 @@ func ConnectDB() *gorm.DB {
 	logger.Error(err)
 
 	return DB
+}
+
+type BaseMode struct {
+	ID uint64
+}
+
+func (a BaseMode) GetStringID() string {
+	return types.Uint64ToString(a.ID)
 }

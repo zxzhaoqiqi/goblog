@@ -2,19 +2,24 @@ package controllers
 
 import (
 	"fmt"
-	"html/template"
 	"net/http"
-	"path/filepath"
 	"unicode/utf8"
 
-	"github.com/zxzhaoqiqi/goblog/model/article"
+	"github.com/zxzhaoqiqi/goblog/models/article"
 	"github.com/zxzhaoqiqi/goblog/pkg/logger"
 	"github.com/zxzhaoqiqi/goblog/pkg/route"
 	"github.com/zxzhaoqiqi/goblog/pkg/types"
+	"github.com/zxzhaoqiqi/goblog/pkg/view"
 	"gorm.io/gorm"
 )
 
 type ArticlesController struct {
+}
+
+type ArticlesFormData struct {
+	Title, Body string
+	Article     article.Article
+	Errors      map[string]string
 }
 
 func (*ArticlesController) Show(w http.ResponseWriter, r *http.Request) {
@@ -38,29 +43,7 @@ func (*ArticlesController) Show(w http.ResponseWriter, r *http.Request) {
 		}
 	} else {
 		// 4. 读取成功
-
-		// 4.0 设置模板相对路径
-		viewDir := "resources/views"
-
-		// 4.1 所有布局模板文件 Slice
-		files, err := filepath.Glob(viewDir + "/layouts/*.gohtml")
-		logger.Error(err)
-
-		// 4.2 在 Slice 中新增我们的目标文件
-		newFiles := append(files, viewDir+"/articles/show.gohtml")
-
-		// 4.3 解析模板文件
-
-		tmpl, err := template.New("show.gohtml").
-			Funcs(template.FuncMap{
-				"RouteName2Url":  route.Name2URL,
-				"Uint64ToString": types.Uint64ToString,
-			}).ParseFiles(newFiles...)
-		logger.Error(err)
-
-		// 4.4 渲染模板，将文章数据传输进去
-		err = tmpl.ExecuteTemplate(w, "app", article)
-		logger.Error(err)
+		view.Render(w, article, "articles.show")
 	}
 }
 
@@ -74,56 +57,13 @@ func (*ArticlesController) Index(w http.ResponseWriter, r *http.Request) {
 		w.WriteHeader(http.StatusInternalServerError)
 		fmt.Fprint(w, "500 服务器内部错误")
 	} else {
-		// 2. 加载模板
-
-		// 2.0 设置模板相对路径
-		viewDir := "resources/views"
-
-		// 2.1 所有布局模板文件 Slice
-		files, err := filepath.Glob(viewDir + "/layouts/*.gohtml")
-		logger.Error(err)
-
-		// 2.2 在 Slice 里新增我们的目标文件
-		newFiles := append(files, viewDir+"/articles/index.gohtml")
-
-		// 2.3 解析模板文件
-		tmpl, err := template.ParseFiles(newFiles...)
-		logger.Error(err)
-
-		// 2.4 渲染模板，将所有文章的数据传输进去
-		err = tmpl.ExecuteTemplate(w, "app", articles)
-		logger.Error(err)
+		view.Render(w, articles, "articles.index")
 	}
 
-}
-
-type ArticlesFormData struct {
-	Title, Body string
-	URL         string
-	Errors      map[string]string
 }
 
 func (*ArticlesController) Create(w http.ResponseWriter, r *http.Request) {
-
-	storeURL := route.Name2URL("articles.store")
-
-	data := ArticlesFormData{
-		Title:  "",
-		Body:   "",
-		URL:    storeURL,
-		Errors: nil,
-	}
-
-	tmpl, err := template.ParseFiles("resources/views/articles/create.gohtml")
-
-	if err != nil {
-		panic(err)
-	}
-
-	err = tmpl.Execute(w, data)
-	if err != nil {
-		panic(err)
-	}
+	view.Render(w, ArticlesFormData{}, "articles.create", "articles._form_field")
 }
 
 func validateArticleFormData(title string, body string) map[string]string {
@@ -171,23 +111,11 @@ func (*ArticlesController) Store(w http.ResponseWriter, r *http.Request) {
 		}
 
 	} else {
-
-		storeURL := route.Name2URL("articles.store")
-
-		data := ArticlesFormData{
+		view.Render(w, ArticlesFormData{
 			Title:  title,
 			Body:   body,
-			URL:    storeURL,
 			Errors: errors,
-		}
-
-		tmpl, err := template.ParseFiles("resources/views/articles/create.gohtml")
-
-		logger.Error(err)
-
-		err = tmpl.Execute(w, data)
-
-		logger.Error(err)
+		}, "articles.create", "articles._form_field")
 	}
 }
 
@@ -196,7 +124,7 @@ func (*ArticlesController) Edit(w http.ResponseWriter, r *http.Request) {
 	id := route.GetRouteVariable("id", r)
 
 	// 2. 读取对应文章的数据
-	article, err := article.Get(id)
+	_article, err := article.Get(id)
 
 	// 3. 如果出现错误
 	if err != nil {
@@ -212,20 +140,14 @@ func (*ArticlesController) Edit(w http.ResponseWriter, r *http.Request) {
 		}
 	} else {
 		// 4. 读取成功
-		updateURL := route.Name2URL("articles.update", "id", id)
 
 		data := ArticlesFormData{
-			Title:  article.Title,
-			Body:   article.Body,
-			URL:    updateURL,
-			Errors: nil,
+			Title:   _article.Title,
+			Body:    _article.Body,
+			Article: _article,
+			Errors:  nil,
 		}
-
-		tmpl, err := template.ParseFiles("resources/views/articles/edit.gohtml")
-		logger.Error(err)
-
-		err = tmpl.Execute(w, data)
-		logger.Error(err)
+		view.Render(w, data, "articles.edit", "articles._form_field")
 	}
 }
 
@@ -275,20 +197,14 @@ func (*ArticlesController) Update(w http.ResponseWriter, r *http.Request) {
 
 		} else {
 			// 4.3 表单验证未通过
-			updateURL := route.Name2URL("articles.update", "id", id)
 
 			data := ArticlesFormData{
-				Title:  title,
-				Body:   body,
-				URL:    updateURL,
-				Errors: errors,
+				Title:   title,
+				Body:    body,
+				Article: _article,
+				Errors:  errors,
 			}
-
-			tmpl, err := template.ParseFiles("resources/views/articles/edit.gohtml")
-			logger.Error(err)
-
-			err = tmpl.Execute(w, data)
-			logger.Error(err)
+			view.Render(w, data, "articles.edit", "articles._form_field")
 		}
 	}
 }

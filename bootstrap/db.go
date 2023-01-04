@@ -3,13 +3,13 @@ package bootstrap
 import (
 	"time"
 
-	"github.com/zxzhaoqiqi/goblog/model"
+	"github.com/zxzhaoqiqi/goblog/models"
 )
 
 func SetupDB() {
 
 	// 建立连接
-	db := model.ConnectDB()
+	db := models.ConnectDB()
 
 	// 命令行打印数据库请求的信息
 	sqlDB, _ := db.DB()
